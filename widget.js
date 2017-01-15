@@ -210,7 +210,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             // setup recv pubsub event
             // this is when we receive data in a per line format from the serial port
             chilipeppr.subscribe("/com-chilipeppr-widget-serialport/recvline", this, function(msg) {
-                this.grblResponse(msg);
+                this.grblResponseV1(msg);
             });
 
             chilipeppr.subscribe("/com-chilipeppr-widget-serialport/onportopen", this, this.openController);
@@ -950,6 +950,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
            
 
         },
+        /*
         grblResponse: function(recvline) {
             //console.log("GRBL: Message Received - " + recvline.dataline);
             if (!(recvline.dataline) || recvline.dataline == '\n') {
@@ -1224,7 +1225,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                 }
             }
         },
-
+        */
         sendCode: function(sendline) {
             //chilipeppr.unsubscribe("/com-chilipeppr-widget-serialport/send", this, this.bufferPush); //unsubscribe before publishing to serial port
             chilipeppr.publish("/com-chilipeppr-widget-serialport/send", sendline); //send to serial port 
