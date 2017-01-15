@@ -335,6 +335,36 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
         btnSetup: function() {
             // chevron hide body
             var that = this;
+            
+            // NEW BUTTONS
+            // TODO: if version < 1 hide all this buttons
+            
+            $(".com-chilipeppr-widget-grbl-realtime-commands").hide();
+            
+            $('#com-chilipeppr-widget-grbl .hide-overrides').click(function(evt) {
+                $(".com-chilipeppr-widget-grbl-realtime-commands").toggle();
+              
+            });
+            $('#com-chilipeppr-widget-grbl .grbl-safety-door').click(function() {
+	            	that.sendCode('\x84');
+            });
+
+            $('#com-chilipeppr-widget-grbl .grbl-unlock').click(function() {
+	            	that.sendCode('$X');
+                $('#com-chilipeppr-widget-grbl .grbl-unlock').removeClass("btn-danger");
+            });
+            
+            $('#com-chilipeppr-widget-grbl .overrides-btn .btn').click(function(){
+            	// send ascii code from data-send-code html tag
+                var code_to_send = parseInt($(this).data("send-code"),16);
+                console.log("GRBL WIDGET: code to send: " + code_to_send);
+                that.sendCode(String.fromCharCode(code_to_send));
+	            
+            });
+            
+            
+            // 
+            
             $('#com-chilipeppr-widget-grbl .hidebody').click(function(evt) {
                 //console.log("GRBL: hide/unhide body");
                 if ($('#com-chilipeppr-widget-grbl .panel-body .stat-row').hasClass('hidden')) {
@@ -349,6 +379,8 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             $('#com-chilipeppr-widget-grbl .grbl-feedhold').click(function() {
                 //console.log("GRBL: feedhold");
                 that.sendCode('!');
+                $(this).html("!");
+                $('#com-chilipeppr-widget-grbl .grbl-cyclestart').html('Resume').addClass("btn-success");
                 // announce to other widgets that user hit e-stop
                 chilipeppr.publish('/com-chilipeppr-interface-cnccontroller/plannerpause', "");
                 chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/feedhold", "");
@@ -356,6 +388,10 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             $('#com-chilipeppr-widget-grbl .grbl-cyclestart').click(function() {
                 //console.log("GRBL: cyclestart");
                 that.sendCode('~');
+                
+                $(this).html("~").removeClass("btn-success");
+                $('#com-chilipeppr-widget-grbl .grbl-feedhold').html('Feedhold !');
+                
                 //may want to check if buffer queue is >128 before resuming planner.
                 chilipeppr.publish('/com-chilipeppr-interface-cnccontroller/plannerresume', "");
             });
@@ -413,6 +449,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                 this.work_mode = 1;
             console.log("GRBL: Updated Work Units - " + this.work_mode);
             //update report units if they have changed
+            $('.stat-units').html(  units );
             this.updateReportUnits();
         },
         updateReportUnits: function() {
@@ -512,6 +549,15 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             }
         },
         grblResponseV1: function(recvline) {
+            
+            
+            if (!(recvline.dataline) || recvline.dataline=='\n' || recvline.dataline.indexOf("ok") >= 0) {
+                console.log("GRBL WIDGET: got recvline but it's not a dataline, so returning.");
+                return true;
+            }
+
+            
+            
             var pushMessages = {
                 status: new RegExp("^\\<(.*?)\\>", "i"),
                 gCodeState: new RegExp("^\\[GC:(.*?)\\]", "i"),
@@ -651,234 +697,257 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             console.log("GRBL WIDGET: line is: ", recvline.dataline);
             
             var msg = recvline.dataline;
-            var parsing = true;
 			var that = this;
-            $.each(pushMessages,function(key,value) {
-                console.log("GRBL WIDGET: testing regex", key, value);
-                if (!parsing){
-                    console.log("GRBL WIDGET: not checking because line already parsed");
-                    return;
-                }
-                var result = value.exec(msg);
-                console.log("GRBL WIDGET: result of primary regex", result);
-                if (result ) {
-                    parsing = false;
+			
+			// empty vars first
+			var key=[];
+			var result = "";
+			
+            $.each(pushMessages,function(pm_key,pm_value) {
+                console.log("GRBL WIDGET: testing regex", pm_key, pm_value);
+                
+                var pm_result = value.exec(msg);
+                if (pm_result ) {
+                    key = pm_key;
+                    result = pm_result;
                     console.log("GRBL WIDGET: got a match");
-                } else {
-                    console.log("GRBL WIDGET: not got a match");
-                    return;
                 }
-                switch (key) {
-                    case 'status':
-                        
-                        //we need the bits
-                        var fields = result[1].split("|");
-                        console.log("GRBL WIDGET: status information: ", fields);
-                        //0 is always the machine state
-                        var status = new RegExp("^(Idle|Run|Hold|Jog|Alarm|Door|Check|Sleep)", "i");
-                        if (status.exec(fields[0])) {
-                            if (fields[0].indexOf('Hold:') >= 0 || fields[0].indexOf('Door:') >= 0) {
-                                that.status = subStates[fields[0]];
-                            }
-                            else {
-                                that.status = fields[0];
-                            }
+            });
+            switch (key) {
+                case 'status':
+                    
+                    //we need the bits
+                    var fields = result[1].split("|");
+                    console.log("GRBL WIDGET: status information: ", fields);
+                    //0 is always the machine state
+                    var status = new RegExp("^(Idle|Run|Hold|Jog|Alarm|Door|Check|Sleep)", "i");
+                    if (status.exec(fields[0])) {
+                        if (fields[0].indexOf('Hold:') >= 0 || fields[0].indexOf('Door:') >= 0) {
+                            that.status = subStates[fields[0]];
                         }
                         else {
-                            that.status = 'Offline';
+                            that.status = fields[0];
                         }
-                        var receivedMachineCoords = false;
-                        var receivedWorkCoords = false;
-                        var i;
-                        for (i = 1; i < fields.length; i++) {
-                            console.log('GRBL WIDGET: checking item ' + i + " of " + fields.length);
-                            var bit = fields[i].split(":");
-                            console.log("GRBL WIDGET: status part information: ", fields[i],bit);
-                            switch (bit[0].toLowerCase()) {
-                                case "mpos":
-                                    var coords = bit[1].split(',');
-                                    console.log("GRBL WIDGET: machine coords: ", coords);
-                                    ['x','y','z'].forEach(function(val, index){
-                                        that.last_machine[val] = parseFloat(coords[index]);
-                                    },that);
-                                    receivedMachineCoords = true;
-                                    break;
-                                case "wpos":
-                                    var coords = bit[1].split(',');
-                                    console.log("GRBL WIDGET: work coords: ", coords);
-                                    ['x','y','z'].forEach(function(val, index){
-                                        that.last_work[val] = parseFloat(coords[index]);
-                                    },that);
-                                    receivedWorkCoords = true;
-                                    break;
-                                case "wco":
-                                    var offset = bit[1].split(',');
-                                    console.log("GRBL WIDGET: offset information: ",offset);
-                                    ['x','y','z'].forEach(function(val, index){
-                                        that.offsets[val] = parseFloat(coords[index]);
-                                    },that);
-                                    break;
-                                case "bf":
-                                    break;
-                                case "ln":
-                                    break;
-                                case "f":
-                                    break;
-                                case "fs":
-                                    break;
-                                case "pn":
-                                    break;
-                                case "ov":
-                                    break;
-                                case "a":
-                                    break;
-                            }
-                            console.log("GRBL WIDGET: finished switch statement.  i = " + i);
+                    }
+                    else {
+                        that.status = 'Offline';
+                    }
+                    var receivedMachineCoords = false;
+                    var receivedWorkCoords = false;
+                    var i;
+                    for (i = 1; i < fields.length; i++) {
+                        console.log('GRBL WIDGET: checking item ' + i + " of " + fields.length);
+                        var bit = fields[i].split(":");
+                        console.log("GRBL WIDGET: status part information: ", fields[i],bit);
+                        switch (bit[0].toLowerCase()) {
+                            case "mpos":
+                                var coords = bit[1].split(',');
+                                console.log("GRBL WIDGET: machine coords: ", coords);
+                                ['x','y','z'].forEach(function(val, index){
+                                    that.last_machine[val] = parseFloat(coords[index]).toFixed(3);
+                                },that);
+                                receivedMachineCoords = true;
+                                
+                                // Update UI
+                                $('.stat-mcoords').html("X:" + this.last_machine.x + " Y:" + this.last_machine.y + " Z:" + this.last_machine.z);
+                                
+                                break;
+                            case "wpos":
+                                var coords = bit[1].split(',');
+                                console.log("GRBL WIDGET: work coords: ", coords);
+                                ['x','y','z'].forEach(function(val, index){
+                                    that.last_work[val] = parseFloat(coords[index]);
+                                },that);
+                                receivedWorkCoords = true;
+                                break;
+                            case "wco":
+                                var offset = bit[1].split(',');
+                                console.log("GRBL WIDGET: offset information: ",offset);
+                                ['x','y','z'].forEach(function(val, index){
+                                    that.offsets[val] = parseFloat(coords[index]);
+                                },that);
+                                break;
+                            case "bf":
+                                break;
+                            case "ln":
+                                break;
+                            case "f":
+                                // FS:500,8000 contains real-time feed rate, followed by spindle speed, data as the values. 
+                                // Note the FS:, rather than F:, data type name indicates spindle speed data is included.
+                                var fs = bit[1].split(',');
+                                // Update UI
+                                $(".stat-feedrate").html(fs[0]);
+                                $(".stat-spindle").html(fs[1]);
+                                break;
+                            case "fs":
+                                break;
+                            case "pn":
+                                // X Y Z XYZ limit pins, respectively
+                                // P the probe pin.
+                                // D H R S the door, hold, soft-reset, and cycle-start pins, respectively.
+                                      
+                                break;
+                            case "ov":
+                                // Ov:100,100,100 indicates current override values in percent 
+                                // of programmed values for feed, rapids, and spindle speed, respectively.
+                                var ov = bit[1].split(',');
+                                // Update UI
+                                $(".ov-1").html(ov[0]);
+                                $(".ov-2").html(ov[1]);
+                                $(".ov-3").html(ov[2]);
+                                break;
+                            case "a":
+                                break;
                         }
-                        //end of status
-                        if (receivedMachineCoords && !receivedWorkCoords) {
-                            ['x','y','z'].forEach(function(val){
-                                that.last_work[val] = that.last_machine[val] - that.offsets[val];
-                            },that);
-                            
-                        }
-                        else if (!receivedMachineCoords && receivedWorkCoords) {
-                            ['x','y','z'].forEach(function(val){
-                                that.last_machine[val] = that.last_work[val] + that.offsets[val];
-                            },that);
-                        }
+                        console.log("GRBL WIDGET: finished switch statement.  i = " + i);
+                    }
+                    //end of status
+                    if (receivedMachineCoords && !receivedWorkCoords) {
+                        ['x','y','z'].forEach(function(val){
+                            that.last_work[val] = that.last_machine[val] - that.offsets[val];
+                        },that);
                         
+                    }
+                    else if (!receivedMachineCoords && receivedWorkCoords) {
+                        ['x','y','z'].forEach(function(val){
+                            that.last_machine[val] = that.last_work[val] + that.offsets[val];
+                        },that);
+                    }
+                    
 
-                        //UI updates
-                        chilipeppr.publish('/com-chilipeppr-interface-cnccontroller/status', that.status);
-                        $('.com-chilipeppr-grbl-state').text(that.status); //Update UI
+                    //UI updates
+                    chilipeppr.publish('/com-chilipeppr-interface-cnccontroller/status', that.status);
+                    $('.com-chilipeppr-grbl-state').text(that.status); //Update UI
 
-                        //send axis updates
+                    //send axis updates
+                    if (that.work_mode === that.report_mode) {
+                        that.publishAxisStatus({
+                            "x": parseFloat(that.last_work.x).toFixed(3),
+                            "y": parseFloat(that.last_work.y).toFixed(3),
+                            "z": parseFloat(that.last_work.z).toFixed(3)
+                        });
+                    }
+                    else if (that.work_mode === 1 && that.report_mode === 0) { //work is inch, reporting in mm
+                        that.publishAxisStatus({
+                            "x": that.toInch(parseFloat(that.last_work.x)),
+                            "y": that.toInch(parseFloat(that.last_work.y)),
+                            "z": that.toInch(parseFloat(that.last_work.z))
+                        });
+                    }
+                    else if (that.work_mode === 0 && that.report_mode === 1) { //work is mm, reporting in inch
+                        that.publishAxisStatus({
+                            "x": that.toMM(parseFloat(that.last_work.x)),
+                            "y": that.toMM(parseFloat(that.last_work.y)),
+                            "z": that.toMM(parseFloat(that.last_work.z))
+                        });
+                    }
+                    break;
+                case 'gCodeState':
+                    break;
+                case 'welcome':
+                    if (that.version !== "") {
+                        chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL has been reset - temporary work coordinate and tool offsets have been lost.");
+                    }
+                    that.version = result[1];
+                    $('#com-chilipeppr-widget-grbl .panel-title').text("GRBL (" + that.version + ")"); //update ui  
+                    break;
+                case 'alarm':
+                    chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", alarmCodes[parseInt(result[1], 10)]);
+                    if (parseInt(result[1], 10) == 4 || parseInt(result[1], 10) == 5) {
+                        chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", "alarm");
+                    }
+                    // Update UI
+                    $('#com-chilipeppr-widget-grbl .grbl-unlock').addClass("btn-danger");
+                    
+                    break;
+                case 'error':
+                    chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", errorMessages[parseInt(result[1], 10)]);
+                    //should we stop now?
+                    break;
+                case 'setting':
+					config.log("GRBL WIDGET: parsing settings", result[1], parseInt(result[1],10), result[2], parseFloat(result[2]), configStrings[result[1]]);
+                    that.config[parseInt(result[1], 10)] = [parseFloat(result[2]), configStrings[result[1]]]; //save config value and description
+                    break;
+                case 'message':
+                    //not all messages are implemented
+                    switch (result[1]) {
+                        case "Reset to continue":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Reset is required before Grbl accepts any other commands.");
+                            break;
+                        case "Enabled":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL is now in passive gcode checking mode.");
+                            break;
+                        case "Disabled":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL is now in active run mode.");
+                            break;
+                        case "Check Door":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Safety door is open.");
+                            break;
+                        case "Check Limits":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Limit switch triggered.");
+                            break;
+                        case "Pgm End":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Program ended, gCode modes restored to defaults.");
+                            break;
+                        case "Sleeping":
+                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Sleeping.");
+                            break;
+                    }
+                    break;
+                case 'helpMessage':
+                    //not a very helpful response.  so ignore
+                    break;
+                case 'hashQuery':
+                    if (result[0] == 'PRB') {
+                        var bits = result[2].split(':');
+                        var probeSuccess = parseInt(bits[1], 10);
+                        var coords = bits[0].split(',');
                         if (that.work_mode === that.report_mode) {
-                            that.publishAxisStatus({
-                                "x": parseFloat(that.last_work.x),
-                                "y": parseFloat(that.last_work.y),
-                                "z": parseFloat(that.last_work.z)
+                            chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
+                                "x": parseFloat(coords[0]).toFixed(3) - that.offsets.x,
+                                "y": parseFloat(coords[1]).toFixed(3) - that.offsets.y,
+                                "z": parseFloat(coords[2]).toFixed(3) - that.offsets.z,
+                                status: probeSuccess
                             });
                         }
                         else if (that.work_mode === 1 && that.report_mode === 0) { //work is inch, reporting in mm
-                            that.publishAxisStatus({
-                                "x": that.toInch(parseFloat(that.last_work.x)),
-                                "y": that.toInch(parseFloat(that.last_work.y)),
-                                "z": that.toInch(parseFloat(that.last_work.z))
+                            chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
+                                "x": that.toInch(parseFloat(coords[0]) - that.offsets.x),
+                                "y": that.toInch(parseFloat(coords[1]) - that.offsets.y),
+                                "z": that.toInch(parseFloat(coords[2]) - that.offsets.z),
+                                status: probeSuccess
                             });
                         }
-                        else if (that.work_mode === 0 && that.report_mode === 1) { //work is mm, reporting in inch
-                            that.publishAxisStatus({
-                                "x": that.toMM(parseFloat(that.last_work.x)),
-                                "y": that.toMM(parseFloat(that.last_work.y)),
-                                "z": that.toMM(parseFloat(that.last_work.z))
+                        else if (that.work_mode === 0 && that.report_mode === 1) { //work is mm, reporting in inches
+                            chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
+                                "x": that.toMM(parseFloat(coords[0]) - that.offsets.x),
+                                "y": that.toMM(parseFloat(coords[1]) - that.offsets.y),
+                                "z": that.toMM(parseFloat(coords[2]) - that.offsets.z),
+                                status: probeSuccess
                             });
                         }
-                        break;
-                    case 'gCodeState':
-                        break;
-                    case 'welcome':
-                        if (that.version !== "") {
-                            chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL has been reset - temporary work coordinate and tool offsets have been lost.");
+                    }
+                    break;
+                case 'version':
+                    that.version = result[1];
+                    break;
+                case 'options':
+                    var opt;
+                    var tmp = new Array;
+                    that.compileOptions = "";
+                    for (var i = 0; i < result[1].length; i++) {
+                        opt = result[1].substr(i, 1);
+                        if (optionCodes[opt]) {
+                            tmp.push(optionCodes[opt]);
                         }
-                        that.version = result[1];
-                        $('#com-chilipeppr-widget-grbl .panel-title').text("GRBL (" + that.version + ")"); //update ui  
-                        break;
-                    case 'alarm':
-                        chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", alarmCodes[parseInt(result[1], 10)]);
-                        if (parseInt(result[1], 10) == 4 || parseInt(result[1], 10) == 5) {
-                            chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", "alarm");
-                        }
-                        break;
-                    case 'error':
-                        chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", errorMessages[parseInt(result[1], 10)]);
-                        //should we stop now?
-                        break;
-                    case 'setting':
-						config.log("GRBL WIDGET: parsing settings", result[1], parseInt(result[1],10), result[2], parseFloat(result[2]), configStrings[result[1]]);
-                        that.config[parseInt(result[1], 10)] = [parseFloat(result[2]), configStrings[result[1]]]; //save config value and description
-                        break;
-                    case 'message':
-                        //not all messages are implemented
-                        switch (result[1]) {
-                            case "Reset to continue":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Reset is required before Grbl accepts any other commands.");
-                                break;
-                            case "Enabled":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL is now in passive gcode checking mode.");
-                                break;
-                            case "Disabled":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "GRBL is now in active run mode.");
-                                break;
-                            case "Check Door":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Safety door is open.");
-                                break;
-                            case "Check Limits":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Limit switch triggered.");
-                                break;
-                            case "Pgm End":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Program ended, gCode modes restored to defaults.");
-                                break;
-                            case "Sleeping":
-                                chilipeppr.publish("/com-chilipeppr-elem-flashmsg/flashmsg", "GRBL Widget", "Sleeping.");
-                                break;
-                        }
-                        break;
-                    case 'helpMessage':
-                        //not a very helpful response.  so ignore
-                        break;
-                    case 'hashQuery':
-                        if (result[0] == 'PRB') {
-                            var bits = result[2].split(':');
-                            var probeSuccess = parseInt(bits[1], 10);
-                            var coords = bits[1].split(',');
-                            if (that.work_mode === that.report_mode) {
-                                chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
-                                    "x": parseFloat(coords[0]) - that.offsets.x,
-                                    "y": parseFloat(coords[1]) - that.offsets.y,
-                                    "z": parseFloat(coords[2]) - that.offsets.z,
-                                    status: probeSuccess
-                                });
-                            }
-                            else if (that.work_mode === 1 && that.report_mode === 0) { //work is inch, reporting in mm
-                                chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
-                                    "x": that.toInch(parseFloat(coords[0]) - that.offsets.x),
-                                    "y": that.toInch(parseFloat(coords[1]) - that.offsets.y),
-                                    "z": that.toInch(parseFloat(coords[2]) - that.offsets.z),
-                                    status: probeSuccess
-                                });
-                            }
-                            else if (that.work_mode === 0 && that.report_mode === 1) { //work is mm, reporting in inches
-                                chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/proberesponse", {
-                                    "x": that.toMM(parseFloat(coords[0]) - that.offsets.x),
-                                    "y": that.toMM(parseFloat(coords[1]) - that.offsets.y),
-                                    "z": that.toMM(parseFloat(coords[2]) - that.offsets.z),
-                                    status: probeSuccess
-                                });
-                            }
-                        }
-                        break;
-                    case 'version':
-                        that.version = result[1];
-                        break;
-                    case 'options':
-                        var opt;
-                        var tmp = new Array;
-                        that.compileOptions = "";
-                        for (var i = 0; i < result[1].length; i++) {
-                            opt = result[1].substr(i, 1);
-                            if (optionCodes[opt]) {
-                                tmp.push(optionCodes[opt]);
-                            }
-                        }
-                        that.compileOptions = tmp.join("\n");
-                        break;
-                    case 'startupLineExecution':
-                        //ignore
-                        break;
-                }
-            });
+                    }
+                    that.compileOptions = tmp.join("\n");
+                    break;
+                case 'startupLineExecution':
+                    //ignore
+                    break;
+            }
+           
 
         },
         grblResponse: function(recvline) {
