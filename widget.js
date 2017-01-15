@@ -308,11 +308,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             
             this.config.forEach(function(config_element,index_num) {
                 
-                $('#grbl-config-div').append('<div class="input-group"  \
-                style="width:400px;margin-bottom:2px;"><div class="input-group-addon" \
-                style="width:40px;padding:0px 6px;">&#36;' + index_num + '</div><input class="form-control" \
-                style="height:20px;padding:0px 6px;width:100px;" id="com-chilipeppr-widget-grbl-config-' + index_num +'" value="' + config_element[0] + '"/>\
-                <span style="margin-left:10px;">' + config_element[1] + '</span></div>');},this);
+            $('#grbl-config-div').append('<div class="input-group" style="width:400px;margin-bottom:2px;"><div class="input-group-addon" style="width:40px;padding:0px 6px;">&#36;' + index_num + '</div><input class="form-control" style="height:20px;padding:0px 6px;width:100px;" id="com-chilipeppr-widget-grbl-config-' + index_num +'" value="' + config_element[0] + '"/><span style="margin-left:10px;">' + config_element[1] + '</span></div>');},this);
 
             $('#grbl-config-div').append('<br/><button class="btn btn-xs btn-default save-config">Save Settings To GRBL</button>');
             $('.save-config').click(this.saveConfigModal.bind(this));
@@ -457,16 +453,16 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                 "", //dummy
                 "G-code words consist of a letter and a value. Letter was not found.",
                 "Numeric value format is not valid or missing an expected value",
-                "Grbl '$' system command was not recognized or supported.",
+                "Grbl '&#36;' system command was not recognized or supported.",
                 "Negative value received for an expected positive value.",
                 "Homing cycle is not enabled via settings.",
                 "Minimum step pulse time must be greater than 3usec",
                 "EEPROM read failed. Reset and restored to default values.",
-                "Grbl '$' command cannot be used unless Grbl is IDLE. Ensures smooth operation during a job.",
+                "Grbl '&#36;' command cannot be used unless Grbl is IDLE. Ensures smooth operation during a job.",
                 "G-code locked out during alarm or jog state",
                 "Soft limits cannot be enabled without homing also enabled.",
                 "Max characters per line exceeded. Line was not processed and executed.",
-                "(Compile Option) Grbl '$' setting value exceeds the maximum step rate supported.",
+                "(Compile Option) Grbl '&#36;' setting value exceeds the maximum step rate supported.",
                 "Safety door detected as opened and door state initiated.",
                 "(Grbl-Mega Only) Build info or startup line exceeded EEPROM line length limit.",
                 "Jog target exceeds machine travel. Command ignored.",
