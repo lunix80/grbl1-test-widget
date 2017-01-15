@@ -7,10 +7,9 @@ cprequire_test(["inline:com-chilipeppr-widget-grbl"], function(grbl) {
 
     var sendGrblVersion = function() {
         chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {
-            dataline: "Grbl 0.8c"
+            dataline: "Grbl 1.1"
         });
     };
-
     chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {
         dataline: "$0=755.906 (x, step/mm)\n"
     });
