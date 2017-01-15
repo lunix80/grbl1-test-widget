@@ -321,7 +321,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             console.log("GRBL: Save Settings");
 
             this.config.forEach(function(config_element,index_num){
-                var command = '$' + index_num + '=' + $('#com-chilipeppr-widget-grbl-config-' + index_num).val() + '\n';
+                var command = '&#36;' + index_num + '=' + $('#com-chilipeppr-widget-grbl-config-' + index_num).val() + '\n';
                 this.config[index_num][0] = $('#com-chilipeppr-widget-grbl-config-' + index_num).val();
                 this.sendCode(command);
             },this);
@@ -511,7 +511,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                 L: "Two limit switches on axis enabled",
                 A: "Allow feed rate overrides in probe cycles",
                 '*': "Restore all EEPROM disabled",
-                '$': "Restore EEPROM $ settings disabled",
+                $ : "Restore EEPROM $ settings disabled",
                 '#': "Restore EEPROM parameter data disabled",
                 I: "Build info write user string disabled",
                 E: "Force sync upon EEPROM write disabled",
