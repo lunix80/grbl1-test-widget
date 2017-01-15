@@ -1207,10 +1207,10 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                     }
 
                     //notify coords change for WCS widget
-                    chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/coords", {
-                        coord: msg_array[1],
-                        coordNum: parseInt(msg_array[1].replace("G", ""))
-                    });
+                   // chilipeppr.publish("/com-chilipeppr-interface-cnccontroller/coords", {
+                  //     coord: msg_array[1],
+                   //     coordNum: parseInt(msg_array[1].replace("G", ""))
+                  //  });
 
                     $('.stat-motion').html(this.gcode_lookup[msg_array[0]]);
                     $('.stat-wcs').html(this.gcode_lookup[msg_array[1]]);
