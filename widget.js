@@ -4,12 +4,6 @@ cprequire_test(["inline:com-chilipeppr-widget-grbl"], function (grbl) {
     grbl.init();
     //testRecvline();
     
-    var sendGrblVersion = function() {
-        chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {
-            dataline: "Grbl 1.1"
-        });
-    };
-    
     chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {dataline: "$0=755.906 (x, step/mm)\n" });
     chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {dataline: "$1=755.906 (y, step/mm)\n" });
     chilipeppr.publish("/com-chilipeppr-widget-serialport/recvline", {dataline: "$13=0 (report mode, 0=mm,1=inch)\n" });
