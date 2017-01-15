@@ -60,7 +60,7 @@ cprequire_test(["inline:com-chilipeppr-widget-grbl"], function(grbl) {
     }); //error not grbl buffer
 	
 	//grab config options.
-	sendCode(String.fromCharCode(36) + String.fromCharCode(36));
+	// sendCode(String.fromCharCode(36) + String.fromCharCode(36));
 
 } /*end_test*/ );
 
@@ -706,7 +706,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
             $.each(pushMessages,function(pm_key,pm_value) {
                 console.log("GRBL WIDGET: testing regex", pm_key, pm_value);
                 
-                var pm_result = value.exec(msg);
+                var pm_result = pm_value.exec(msg);
                 if (pm_result ) {
                     key = pm_key;
                     result = pm_result;
@@ -865,7 +865,7 @@ cpdefine("inline:com-chilipeppr-widget-grbl", ["chilipeppr_ready", "jquerycookie
                     //should we stop now?
                     break;
                 case 'setting':
-					config.log("GRBL WIDGET: parsing settings", result[1], parseInt(result[1],10), result[2], parseFloat(result[2]), configStrings[result[1]]);
+					console.log("GRBL WIDGET: parsing settings", result[1], parseInt(result[1],10), result[2], parseFloat(result[2]), configStrings[result[1]]);
                     that.config[parseInt(result[1], 10)] = [parseFloat(result[2]), configStrings[result[1]]]; //save config value and description
                     break;
                 case 'message':
